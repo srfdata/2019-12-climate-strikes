@@ -1,0 +1,707 @@
+---
+title: "2019-12-climate-strikes"
+author: "SRF Data, Aline Metzler (aline.metzler@srf.ch), Angelo Zehr (angelo.zehr@srf.ch), Felix Michel (felix.michel@srf.ch)"
+date: "November 2019"
+output:
+  html_document:
+    code_folding: show
+    echo: TRUE
+    warning: FALSE
+    message: FALSE
+    theme: simplex
+    df_print: kable
+    toc: yes
+    toc_depth: 4
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+subtitle: Vorprozessierung und Analyse
+---
+
+
+```{r, echo=FALSE}
+# CONFIG
+user_name <- "srfdata" # github user name
+project_name <- "2019-12-climate-strikes" # adapt to new repo name
+package_date <- "2019-03-01" # date of the CRAN snapshot that
+# the checkpoint package uses
+R_version <- "3.5.3" # R-Version to use
+options(Ncpus = 4) # use 4 cores for parallelized installation of packages
+if (R_version != paste0(version$major, ".", version$minor)){
+  stop("ERROR: specified R version does not match currently used.")
+}
+```
+
+## Vorbemerkungen
+
+Dieses Dokument beschreibt die Vorprozessierung und explorative Analyse des Datensatzes, der Grundlage des auf srf.ch veröffentlichten Artikel [XYZ](https://www.srf.ch/data) ist.
+
+SRF Data legt Wert darauf, dass die Datenvorprozessierung und -Analyse nachvollzogen und überprüft werden kann. SRF Data glaubt an das Prinzip offener Daten, aber auch offener und nachvollziehbarer Methoden. Zum anderen soll es Dritten ermöglicht werden, auf dieser Vorarbeit aufzubauen und damit weitere Auswertungen oder Applikationen zu generieren.  
+
+Die Endprodukte des vorliegenden Scripts, neben der vorliegenden explorativen Analyse, sind (Datenbeschreibung siehe unten):
+
+* `climate_strikes.csv`: Für die Datenanalyse und -visualisierung aufbereitete Daten.
+
+* `language_region.csv`: Für die Visualisierung aufbereitete Daten bezgl. dem Anteil der Teilnehmerinnen und Teilnehmer an Klimastreiks und -demos relativ zu der Bevölkerungsgrösse der Sprachgebiete.
+
+
+### R-Script & Daten
+
+Die Vorprozessierung und Analyse wurde im Statistikprogramm R vorgenommen. Das zugrunde liegende Script sowie die prozessierten Daten können unter [diesem Link](https://srfdata.github.io/`r project_name`/rscript.zip) heruntergeladen werden. Durch Ausführen von `main.Rmd` kann der hier beschriebene Prozess nachvollzogen und der für den Artikel verwendete Datensatz generiert werden. Dabei werden Daten aus dem Ordner `input` eingelesen und Ergebnisse in den Ordner `output` geschrieben. 
+
+SRF Data verwendet das [rddj-template](https://github.com/grssnbchr/rddj-template) von Timo Grossenbacher als Grundlage für seine R-Scripts. Entstehen bei der Ausführung dieses Scripts Probleme, kann es helfen, die Anleitung von [rddj-template](https://github.com/grssnbchr/rddj-template) zu studieren. 
+
+Debug-Informationen: *This report was generated on `r Sys.time()`. R version: `r paste0(version$major, ".", version$minor)` on `r version$platform`. For this report, CRAN packages as of `r package_date` were used.*
+
+### GitHub
+
+Der Code für die vorliegende Datenprozessierung ist auf [https://github.com/srfdata/`r project_name`](https://github.com/srfdata/`r project_name`) zur freien Verwendung verfügbar. 
+
+
+### Lizenz
+
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons Lizenzvertrag" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Dataset" property="dct:title" rel="dct:type">`r project_name`</span> von <a xmlns:cc="http://creativecommons.org/ns#" href="https://github.com/srfdata/`r project_name`" property="cc:attributionName" rel="cc:attributionURL">SRF Data</a> ist lizenziert unter einer <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Namensnennung - Weitergabe unter gleichen Bedingungen 4.0 International Lizenz</a>.
+
+### Weitere Projekte
+
+Code & Daten von [SRF Data](https://srf.ch/data) sind unter [https://srfdata.github.io](https://srfdata.github.io) verfügbar.
+
+### Haftungsausschluss
+
+Die veröffentlichten Informationen sind sorgfältig zusammengestellt, erheben aber keinen Anspruch auf Aktualität, Vollständigkeit oder Richtigkeit. Es wird keine Haftung übernommen für Schäden, die  durch die Verwendung dieses Scripts oder der daraus gezogenen Informationen entstehen. Dies gilt ebenfalls für Inhalte Dritter, die über dieses Angebot zugänglich sind.
+
+### Datenbeschreibung 
+
+#### `climate_strikes.csv` (Beispiel)
+
+| Attribut | Typ | Beschreibung |
+|-------|------|-----------------------------------------------------------------------------|
+| Ortschaft | String  | Einteilung nach Ortschaft. |
+| Kanton | String |  Kantonskürzel der Ortschaft. |
+| Datum | Date |  Datum des Klimastreiks. |
+| Anzahl | Numeric | Anzahl Teilnehmende an Klimastreik. |
+
+#### `language_region.csv` (Beispiel)
+
+| Attribut | Typ | Beschreibung |
+|-------|------|-----------------------------------------------------------------------------|
+| Sprachgebiete | String | Einteilung in Sprachgebiete. |
+| Teilnehmer | Numeric  | Anzahl Teilnehmer an Klimastreiks in Sprachgebiet. |
+| Anz_Personen | Numeric |  Anzahl Personen wohnhaft in Sprachgebiet. |
+| Prozentueller_Anteil | Numeric | Anteil Teilnehmer rel. zu Bevölkerung in Sprachgebiet. |
+
+### Originalquelle
+
+Die Daten stammen von «[Klimastreik Schweiz](https://climatestrike.ch/)», den Organisatoren der Schweizer Klimastreiks. Die Daten wurden mit Polizeinagaben und der Schweizer Mediendatenbank abgeglichen. Grösstenteils stimmen die Angaben überein. Einzig bei den Grossdemonstrationen in Städten wie Bern, Lausanne oder Zürich zeigt sich ein grösserer Unschärfebereich bezüglich Teilnehmeranzahl.
+
+Die Daten können bei «[Klimastreik Schweiz](https://climatestrike.ch/contact/)» angefragt werden.
+
+
+## Vorbereitungen
+
+```{r, echo=FALSE}
+detach_all_packages <- function() {
+  basic_packages_blank <-  c("stats",
+                             "graphics",
+                             "grDevices",
+                             "utils",
+                             "datasets",
+                             "methods",
+                             "base")
+  basic_packages <- paste("package:", basic_packages_blank, sep = "")
+
+  package_list <- search()[
+    ifelse(unlist(gregexpr("package:", search())) == 1, TRUE, FALSE)]
+
+  package_list <- setdiff(package_list, basic_packages)
+
+  if (length(package_list) > 0)  for (package in package_list) {
+    detach(package, character.only = TRUE, unload = TRUE)
+    print(paste("package ", package, " detached", sep = ""))
+  }
+}
+
+detach_all_packages()
+
+# this allows multiple persons to use the same RMarkdown
+# without adjusting the working directory by themselves all the time
+source("scripts/csf.R")
+path_to_wd <- csf() # if this - for some reason - does not work,
+# replace with a hardcoded path, like so: "~/projects/rddj-template/analysis/"
+if ( is.null(path_to_wd) | !dir.exists(path_to_wd)) {
+  print("WARNING: No working directory specified for current user")
+} else {
+  setwd(path_to_wd)
+}
+
+# suppress scientific notation
+options(scipen = 999)
+
+# unload global rstudioapi and knitr again to avoid conflicts with checkpoint
+# this is only necessary if executed within RStudio
+# outside of RStudio, namely in the knit.sh script, this causes RMarkdown
+# rendering to fail, thus should not be executed there
+if (Sys.getenv("RSTUDIO") == "1"){
+  detach_all_packages()
+}
+```
+
+
+### Packages definieren
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+# from https://mran.revolutionanalytics.com/web/packages/checkpoint/vignettes/using-checkpoint-with-knitr.html
+# if you don't need a package, remove it from here (commenting is probably not sufficient)
+# tidyverse: see https://blog.rstudio.org/2016/09/15/tidyverse-1-0-0/
+cat("
+library(rstudioapi)
+library(raster) # raster used for relief important: load before tidyverse
+library(glue) # cooler string templating
+library(tidyverse) # ggplot2, dplyr, tidyr, readr, purrr, tibble
+library(magrittr) # pipes
+library(readxl) # excel
+library(scales) # scales for ggplot2
+library(jsonlite) # json
+library(lintr) # code linting
+library(sf) # spatial data handling
+library(gganimate) # animate a ggplot as a gif
+library(gifski)
+library(png)
+library(rmarkdown)",
+file = "manifest.R")
+```
+
+### Packages installieren
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+# if checkpoint is not yet installed, install it (for people using this
+# system for the first time)
+if (!require(checkpoint)) {
+  if (!require(devtools)) {
+    install.packages("devtools", repos = "http://cran.us.r-project.org")
+    require(devtools)
+  }
+  devtools::install_github("RevolutionAnalytics/checkpoint",
+                           ref = "v0.3.2", # could be adapted later,
+                           # as of now (beginning of July 2017
+                           # this is the current release on CRAN)
+                           repos = "http://cran.us.r-project.org")
+  require(checkpoint)
+}
+# nolint start
+if (!dir.exists("~/.checkpoint")) {
+  dir.create("~/.checkpoint")
+}
+# nolint end
+# install packages for the specified CRAN snapshot date
+checkpoint(snapshotDate = package_date,
+           project = path_to_wd,
+           verbose = T,
+           scanForPackages = T,
+           use.knitr = F,
+           R.version = R_version)
+rm(package_date)
+```
+
+
+### Packages laden
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+source("manifest.R")
+unlink("manifest.R")
+sessionInfo()
+```
+
+
+## Daten einlesen
+
+```{r}
+# first prepare a data frame only for the animation with filled values
+climate_strikes_filled <- read_delim(
+  "input/Klimademos_aktuell.csv",
+  delim = ";",
+  locale = locale(encoding = "ISO-8859-1")
+  ) %>% 
+  gather(key = "Datum", value = "Anzahl", -Ortschaft, -Kanton) %>%
+  mutate(Anzahl = as.numeric(sub("'", "", Anzahl, fixed = TRUE)),
+         Datum = as.Date(Datum, "%d.%m.%Y")) %>% 
+  mutate(Ortschaft = case_when(
+    Ortschaft == "Aarau" ~ "Aarau",             
+    Ortschaft == "Affoltern a. A." ~ "Affoltern am Albis",   
+    Ortschaft == "Allschwil" ~ "Allschwil",         
+    Ortschaft == "Altdorf" ~ "Altdorf (UR)",           
+    Ortschaft == "Baden" ~ "Baden",             
+    Ortschaft == "Basel" ~ "Basel",             
+    Ortschaft == "Bellinzona" ~ "Bellinzona",        
+    Ortschaft == "Bern" ~ "Bern",              
+    Ortschaft == "Biel / Bienne" ~ "Biel/Bienne",     
+    Ortschaft == "Brig" ~ "Brig-Glis",              
+    Ortschaft == "Bülach" ~ "Bülach",            
+    Ortschaft == "Burgdorf" ~ "Burgdorf",          
+    Ortschaft == "Chemin-Dessus" ~ "Martigny",     
+    Ortschaft == "Chur" ~ "Chur",              
+    Ortschaft == "Davos" ~ "Davos",             
+    Ortschaft == "Degersheim" ~ "Degersheim",        
+    Ortschaft == "Delémont" ~ "Delémont",          
+    Ortschaft == "Erlach" ~ "Erlach",            
+    Ortschaft == "Frauenfeld" ~ "Frauenfeld",        
+    Ortschaft == "Fribourg" ~ "Fribourg",          
+    Ortschaft == "Genf" ~ "Genève",              
+    Ortschaft == "Glarus" ~ "Glarus",            
+    Ortschaft == "Hettlingen" ~ "Hettlingen",        
+    Ortschaft == "Horgen" ~ "Horgen",            
+    Ortschaft == "Ins" ~ "Ins",               
+    Ortschaft == "Interlaken" ~ "Interlaken",        
+    Ortschaft == "Köniz" ~ "Köniz",             
+    Ortschaft == "Kreuzlingen" ~ "Kreuzlingen",       
+    Ortschaft == "La Chaux-de-Fonds" ~ "La Chaux-de-Fonds", 
+    Ortschaft == "Lausanne" ~ "Lausanne",          
+    Ortschaft == "Langenthal" ~ "Langenthal",        
+    Ortschaft == "Liestal" ~ "Liestal",           
+    Ortschaft == "Lugano" ~ "Lugano",            
+    Ortschaft == "Luzern" ~ "Luzern",            
+    Ortschaft == "Lyss" ~ "Lyss",              
+    Ortschaft == "Massongex" ~ "Massongex",         
+    Ortschaft == "Mésery-près-Donneloye" ~ "Donneloye",
+    Ortschaft == "Münsingen" ~ "Münsingen",         
+    Ortschaft == "Neuchâtel" ~ "Neuchâtel",         
+    Ortschaft == "Olten" ~ "Olten",             
+    Ortschaft == "Pfäffikon" ~ "Pfäffikon",         
+    Ortschaft == "Porrentruy" ~ "Porrentruy",        
+    Ortschaft == "Rapperswil" ~ "Rapperswil-Jona",        
+    Ortschaft == "Regensdorf" ~ "Regensdorf",        
+    Ortschaft == "Sarnen" ~ "Sarnen",            
+    Ortschaft == "Saignelégier" ~ "Saignelégier",      
+    Ortschaft == "Schaffhausen" ~ "Schaffhausen",      
+    Ortschaft == "Schwarzenburg" ~ "Schwarzenburg",     
+    Ortschaft == "Sion" ~ "Sion",              
+    Ortschaft == "Solothurn" ~ "Solothurn",         
+    Ortschaft == "Stans" ~ "Stans",             
+    Ortschaft == "St. Gallen" ~ "St. Gallen",        
+    Ortschaft == "Sursee" ~ "Sursee",            
+    Ortschaft == "Teufen" ~ "Teufen (AR)",            
+    Ortschaft == "Thun" ~ "Thun",              
+    Ortschaft == "Uster" ~ "Uster",             
+    Ortschaft == "Vuiteboeuf" ~ "Vuiteboeuf",        
+    Ortschaft == "Wattwil" ~ "Wattwil",           
+    Ortschaft == "Wetzikon" ~ "Wetzikon (ZH)",          
+    Ortschaft == "Winterthur" ~ "Winterthur",        
+    Ortschaft == "Zollikofen / Wohlen" ~ "Zollikofen",
+    Ortschaft == "Zug" ~ "Zug",               
+    Ortschaft == "Zürich" ~ "Zürich"
+  ))
+
+# create normal data frame for usual analysis
+climate_strikes <- climate_strikes_filled %>%
+  filter(!is.na(Anzahl)) # %>% 
+  # write.csv("output/climate_strikes.csv") # csv of data
+
+# add cumsum
+climate_strikes_filled %<>%
+  group_by(Ortschaft) %>%
+  arrange(Datum) %>%
+  mutate(
+    Anzahl = if_else(is.na(Anzahl), 0, 1),
+    Anzahl = cumsum(Anzahl)
+  )
+
+```
+
+## Geographische Daten einlesen
+Generalisierte Gemeindegrenzen, Relief, Seen
+
+```{r read geo data}
+getwd()
+
+# read country borders for masking relief
+country_geo <- read_sf(
+  "input/gd-b-00.03-875-gg19/ggg_2019-LV95/shp/g1l19.shp",
+  crs = 2056
+)
+
+# read lakes
+lake_geo <- read_sf(
+  "input/gd-b-00.03-875-gg19/ggg_2019-LV95/shp/g2s19.shp",
+  crs = 2056
+) %>%
+  # remove lake Como, it's not really within Switzerland
+  filter(GMDNAME != "Lago di Como")
+
+# read cantonal borders
+canton_geo <- read_sf(
+  "input/gd-b-00.03-875-gg19/ggg_2019-LV95/shp/g2k19.shp",
+  crs = 2056
+)
+
+# read municipal borders
+municipality_geo <- read_sf(
+  "input/gd-b-00.03-875-gg19/ggg_2019-LV95/shp/g2g19.shp",
+  # set crs to lv95
+  crs = 2056
+)
+
+```
+
+## Teilnehmer & Klimastreiks
+
+```{r}
+# Teilnehmer an Klimastreiks nach Ortschaft
+climate_strikes %>%
+  group_by(
+    Ortschaft
+  ) %>%
+  summarise(Teilnehmer = sum(Anzahl, na.rm = TRUE)) %>% 
+  mutate(Ortschaft = fct_reorder(Ortschaft, Teilnehmer, last)) %>%  
+  ggplot(aes(x = Ortschaft, y = Teilnehmer)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Anzahl Teilnehmer an Klimastreiks nach Ortschaft",
+       y = "Teilnehmer an Klimastreiks")
+
+# Anzahl Klimastreiks nach Ortschaft
+climate_strikes %>%
+  group_by(
+    Ortschaft
+  ) %>%
+  count() %>% 
+  ungroup() %>% 
+  mutate(Ortschaft = fct_reorder(Ortschaft, n, last)) %>%  
+  ggplot(aes(x = Ortschaft, y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Anzahl Klimastreiks nach Ortschaft",
+       y = "Anzahl Klimastreiks")
+```
+
+## Klimastreiks, verteilt über das Jahr
+
+```{r}
+
+get_qrt <- function(date) {
+  month <- as.numeric(format(date, "%m"))
+  year <- as.numeric(format(date, "%Y"))
+  
+  qrt <- case_when(
+    month <= 3 ~ "Q1",
+    month <= 6 ~ "Q2",
+    month <= 9 ~ "Q3",
+    TRUE ~ "Q4"
+  )
+  
+  glue("{year} {qrt}")
+}
+
+# Verteilung über das Jahr
+climate_strikes %>% 
+  group_by(Datum) %>% 
+  summarise(Teilnehmerzahl = sum(Anzahl)) %>% 
+  ggplot(aes(x = Datum, y = Teilnehmerzahl)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Anzahl Teilnehmer an Klimastreiks über das Jahr verteilt")
+# TODO: Hier wären Annotations noch cool ->möglich?
+
+# nach Quartal
+climate_strikes %>% 
+  mutate(Quartal = get_qrt(Datum)) %>% 
+  group_by(Quartal) %>% 
+  summarise(Teilnehmer = sum(Anzahl, na.rm = TRUE)) %>% 
+  ggplot(aes(x = Quartal, y = Teilnehmer)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Anzahl Teilnehmer an Klimastreiks nach Quartal",
+       y = "Teilnehmer an Klimastreiks")
+ 
+climate_strikes %>% 
+  mutate(Quartal = get_qrt(Datum)) %>% 
+  group_by(Quartal) %>% 
+  count() %>% 
+  ungroup() %>% 
+  ggplot(aes(x = Quartal, y = n)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Anzahl Klimastreiks nach Quartal",
+       y = "Anzahl Klimastreiks")
+
+
+```
+
+## Visualisierung der Klimastreiks
+
+```{r}
+# Anzahl neue Ortschaften mit Klimastreiks (aufsummiert)
+climate_strikes %>% 
+  group_by(Ortschaft) %>% 
+  filter(row_number() == 1) %>% 
+  ungroup() %>% 
+  group_by(Datum) %>% 
+  count() %>% 
+  ungroup() %>%
+  mutate(Anzahl = cumsum(n)) %>% 
+  ggplot(aes(x = Datum, y = Anzahl)) +
+  geom_step(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Ausbreitung der Klimastreiks der Schweiz",
+       y = "Anzahl Ortschaften mit Klimastreiks") 
+
+# Anzahl Klimastreiks (aufsummiert)
+climate_strikes %>% 
+  group_by(Datum) %>% 
+  count() %>% 
+  ungroup() %>% 
+  mutate(Anzahl = cumsum(n)) %>% 
+  ggplot(aes(x = Datum, y = Anzahl)) +
+  geom_step(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Kumulierte Anzahl Klimastreiks in der Schweiz",
+       y = "Kumulierte Anzahl")
+
+# Anzahl Teilnehmer (aufsummiert)
+climate_strikes %>% 
+  group_by(Datum) %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 1)) %>% 
+  summarise(Teilnehmer = sum(Anzahl)) %>% 
+  ungroup() %>% 
+  mutate(Anzahl = cumsum(Teilnehmer)) %>% 
+  ggplot(aes(x = Datum, y = Anzahl)) +
+  geom_step(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Kumulierte Anzahl Teilnehmer an Klimastreiks in der Schweiz",
+       y = "Kumulierte Anzahl Teilnehmer")
+
+```
+
+## Bubble map: Wo streikten die meisten Leute?
+
+```{r}
+# Nach Teilnehmer
+climate_strikes %>%
+  group_by(
+    Ortschaft
+  ) %>%
+  summarise(Teilnehmer = sum(Anzahl, na.rm = TRUE)) %>%
+  ungroup() %>%
+  left_join(
+    municipality_geo,
+    by = c("Ortschaft" = "GMDNAME")
+  ) %>%
+  ggplot() +
+  geom_sf(
+    data = canton_geo,
+    fill = "#EEEEEE",
+    color = "#FFFFFF",
+    size = 0.3
+  ) +
+  # draw lakes in light blue
+  geom_sf(
+    data = lake_geo,
+    fill = "#D6F1FF",
+    color = "transparent"
+  ) +
+  geom_polygon(aes(x = E_CNTR, 
+                   y = N_CNTR,
+                   group = GMDNR)) +
+  geom_point(aes(x = E_CNTR, 
+                 y = N_CNTR,
+                 size = Teilnehmer,
+                 color = Teilnehmer),
+             alpha = 0.9) +
+  theme_void() +
+  theme(panel.grid.major = element_line("transparent"))
+
+
+# Nach Anzahl Streiks
+climate_strikes %>%
+  group_by(
+    Ortschaft
+  ) %>%
+  count() %>%
+  left_join(
+    municipality_geo,
+    by = c("Ortschaft" = "GMDNAME")
+  ) %>%
+  ggplot() +
+  geom_sf(
+    data = canton_geo,
+    fill = "#EEEEEE",
+    color = "#FFFFFF",
+    size = 0.3
+  ) +
+  # draw lakes in light blue
+  geom_sf(
+    data = lake_geo,
+    fill = "#D6F1FF",
+    color = "transparent"
+  ) +
+  geom_polygon(aes(x = E_CNTR, 
+                   y = N_CNTR,
+                   group = GMDNR)) +
+  geom_point(aes(x = E_CNTR, 
+                 y = N_CNTR,
+                 size = n,
+                 color = n),
+             alpha = 0.9) +
+  theme_void() +
+  theme(panel.grid.major = element_line("transparent")) +
+  labs(title = "Anzahl Klimastreiks nach Ortschaft",
+       size = "Anzahl Klimastreiks",
+       color = "")
+```
+
+## Animated Bubble Chart
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+plot <- climate_strikes_filled %>%
+  left_join(municipality_geo, by = c("Ortschaft" = "GMDNAME")) %>%
+  ggplot() +
+  geom_sf(data = canton_geo, fill = "#EEEEEE", color = "#FFFFFF", size = 0.3) +
+  # draw lakes in light blue
+  geom_sf(data = lake_geo, fill = "#D6F1FF", color = "transparent") +
+  geom_point(
+    alpha = 1,
+    colour = "#e31f2b",
+    aes(
+      x = E_CNTR,
+      y = N_CNTR,
+      group = GMDNR,
+      size = Anzahl
+    )
+  ) +
+  scale_size_continuous(range = c(-1, 15), breaks = c(1, 3, 9)) +
+  theme_void() +
+  theme(
+    panel.grid.major = element_line("transparent"),
+    plot.title = 
+      element_text(
+        size = 18,
+        family = "SRG SSR Type Text",
+        face = "bold"
+        ),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14, family = "SRG SSR Type Text"),
+    legend.position = c(0.03, 0.88)
+  ) +
+  labs(
+    title = 'Anzahl Klimastreiks bis {format(frame_time, "%B %Y")}'
+  ) +
+  transition_time(Datum) +
+  ease_aes()
+
+# desktop version
+animate(plot, width = 800, height = 550, renderer = gifski_renderer())
+
+# Save at gif:
+anim_save(filename = "output/animation_raw.gif")
+
+# override certain scales / theme settings for mobile (square and smaller)
+mobile <- plot +
+  scale_size_continuous(range = c(-1, 8), breaks = c(1, 3, 9)) +
+  theme(legend.position = "bottom")
+
+# mobile version
+animate(
+  mobile,
+  width = 400,
+  height = 400,
+  renderer = gifski_renderer()
+)
+
+# Save at gif:
+anim_save(filename = "output/animation_raw_mobile.gif")
+
+```
+
+## Analyse nach Sprachgebieten
+
+```{r}
+# Daten zu Sprachregionen einlesen
+language_regions <- read_excel("input/Raumgliederungen.xlsx", 
+                               skip = 1
+                               ) %>%
+  slice(-1) %>% 
+  mutate(Sprachgebiete = case_when(
+    Sprachgebiete == 1 ~ "Deutsches Sprachgebiet",
+    Sprachgebiete == 2 ~ "Französisches Sprachgebiet",
+    Sprachgebiete == 3 ~ "Italienisches Sprachgebiet",
+    Sprachgebiete == 4 ~ "Rätoromanisches Sprachgebiet"
+  ))
+
+# mergen
+strikes_region <- climate_strikes %>% 
+  left_join(language_regions,
+            by = c("Ortschaft" = "Gemeindename")
+            ) %>% 
+  mutate_if(is.numeric, ~replace(., is.na(.), 1)) %>% 
+  group_by(Sprachgebiete) %>% 
+  summarise(Teilnehmer = sum(Anzahl))
+  
+# Bevölkerungsdaten einlesen
+population_region <- read_excel(
+  "input/Bevölkerung_Sprachregion.xlsx", 
+  skip = 3
+  ) %>% 
+  select(
+    -1,
+    - (4:16)
+    ) %>% 
+  slice(
+    - (6:16)
+    ) %>% 
+  set_colnames(c("Sprachregion", "Anz_Personen")) %>% 
+  mutate_if(is.character, ~replace(., is.na(.), "Total"))
+
+# mergen
+strikes_region %>% 
+  left_join(population_region,
+            by = c("Sprachgebiete" = "Sprachregion")
+            ) %>% 
+  mutate(Prozentueller_Anteil = Teilnehmer / Anz_Personen,
+         Sprachgebiete = fct_reorder(Sprachgebiete, Prozentueller_Anteil, last)
+         ) %>%
+  # arrange(Prozentueller_Anteil) %>%
+  # write.csv("output/language_region.csv") # csv for Datawrapper
+  ggplot(aes(x = Sprachgebiete, y = Prozentueller_Anteil)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Anteil Teilnehmer nach Sprachregion und Bevölkerung",
+       y = "Prozentueller Anteil")
+```
+
+## Korrelation Klimastreik in Gemeinde und Wähleranteil der Grünen
+
+```{r}
+parties_per_municipality <- read_csv("input/parties_per_municipality.csv")
+
+climate_strikes %>%
+  group_by(
+    Ortschaft
+  ) %>%
+  summarise(Teilnehmer = sum(Anzahl, na.rm = TRUE)) %>%
+  ungroup() %>%
+  left_join(
+    parties_per_municipality,
+    by = c("Ortschaft" = "gemeinde_bezeichnung")
+  ) %>%
+  filter(partei_bezeichnung_de == "GPS") %>%
+  ggplot(aes(x = Teilnehmer, y = partei_staerke)) +
+  geom_point(shape = 1) +
+  geom_smooth(method = lm)
+
+```
+
+## Linting
+
+Der Code in diesem RMarkdown wird mit [lintr](https://github.com/jimhester/lintr) automatisch auf den Wickham'schen [tidyverse style guide](http://style.tidyverse.org/) überprüft.  
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+lintr::lint("main.Rmd", linters =
+              lintr::with_defaults(
+                commented_code_linter = NULL,
+                trailing_whitespace_linter = NULL
+                )
+            )
+# if you have additional scripts and want them to be linted too, add them here
+# lintr::lint("scripts/my_script.R")
+```
